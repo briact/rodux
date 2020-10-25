@@ -12,6 +12,30 @@ Store._flushEvent = RunService.Heartbeat
 
 Store.__index = Store
 
+-- local function to handle the merging of states
+-- auto handles the ability of pulling ...currentState
+local function mergeStates(currentState, updates)
+	if currentState == updates then
+		return currentState
+	else
+		local newState = {}
+		
+		if currentState then
+			for index, value in next, currentState do
+				newState[index] = value
+			end
+		end
+		
+		if updates then
+			for index, value in next, updates do
+				newState[index] = value
+			end
+		end
+		
+		return newState
+	end
+end
+
 --[[
 	Create a new Store whose state is transformed by the given reducer function.
 
@@ -85,8 +109,11 @@ function Store:dispatch(action)
 		if action.type == nil then
 			error("action does not have a type field", 2)
 		end
+		
+		local stateUpdates, dontMerge = self._reducer(self._state, action)
+		local newState = dontMerge and stateUpdates or mergeStates(self._state, stateUpdates);
 
-		self._state = self._reducer(self._state, action)
+		self._state = newState
 		self._mutatedSinceFlush = true
 	else
 		error(("actions of type %q are not permitted"):format(typeof(action)), 2)
